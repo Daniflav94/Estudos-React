@@ -6,10 +6,10 @@ import {
   orderBy,
   where,
   onSnapshot,
-  QuerySnapshot,
 } from "firebase/firestore";
 
 export const useFetchDocuments = (docCollection, search = null, uid = null) => {
+  // 'parametro = null' indica que é opcional
   const [documents, setDocuments] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(null);
@@ -25,8 +25,23 @@ export const useFetchDocuments = (docCollection, search = null, uid = null) => {
 
       try {
         let q;
-        // vai buscar os registros pela ordem dos mais recentes
-        q = await query(collectionRef, orderBy("createdAt", "desc"));
+
+        if (search) {
+          q = await query(
+            collectionRef,
+            where("tagsArray", "array-contains", search), // 'array-contains' é um parâmetro do firebase
+            orderBy("createdAt", "desc")
+          );
+        } else if(uid) {
+          q = await query(
+            collectionRef,
+            where("uid", "==", uid), // '==' é um parâmetro do firebase
+            orderBy("createdAt", "desc")
+          );
+        }else {
+          // vai buscar os registros pela ordem dos mais recentes
+          q = await query(collectionRef, orderBy("createdAt", "desc"));
+        }
 
         //vai mapear os dados, se houver alteração vai atualizar
         await onSnapshot(q, (QuerySnapshot) => {
@@ -50,11 +65,10 @@ export const useFetchDocuments = (docCollection, search = null, uid = null) => {
     loadData();
   }, [docCollection, search, uid, cancelled]); // só vai ser executada quando um desses dados sofrer alterações
 
-
-  useEffect(() => { //faz limpeza de memória
+  useEffect(() => {
+    //faz limpeza de memória
     return () => setCancelled(true);
   }, []);
 
-
-  return {documents, loading, error} //retorna como obj para poder acessar os itens individualmente
+  return { documents, loading, error }; //retorna como obj para poder acessar os itens individualmente
 };
